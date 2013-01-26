@@ -1,10 +1,14 @@
-# Django settings for hubvan project.
+import os.path
+import sys
+
+PROJECT_DIR = os.path.normpath(os.path.join(os.path.dirname(__file__), '../..'))
+root_join = lambda d: os.path.join(PROJECT_DIR, d)
 
 DEBUG = True
 TEMPLATE_DEBUG = DEBUG
 
 ADMINS = (
-    # ('Your Name', 'your_email@example.com'),
+    ('Bill Mill', 'bill.mill@gmail.com'),
 )
 
 MANAGERS = ADMINS
@@ -116,9 +120,9 @@ INSTALLED_APPS = (
     'django.contrib.messages',
     'django.contrib.staticfiles',
     # Uncomment the next line to enable the admin:
-    # 'django.contrib.admin',
+    'django.contrib.admin',
     # Uncomment the next line to enable admin documentation:
-    # 'django.contrib.admindocs',
+    'django.contrib.admindocs',
 )
 
 # A sample logging configuration. The only tangible logging
@@ -149,3 +153,11 @@ LOGGING = {
         },
     }
 }
+
+#first try to import *my* local settings
+try:
+    execfile(root_join("hubvan/hubvan/local_settings.py"))
+except IOError as e:
+    print "unable to open local settings"
+    print e
+    pass
