@@ -23,7 +23,8 @@ def user(request, user):
     access_token = REDIS.get("access_token-%s" % user)
 
     if not access_token:
-        print "no access token for %s" % user
+        #probably ought to redirect to github oauth page
+        return render(request, 'error.html', {'error': "No token for %s" % user})
 
     # View code here...
     # 1. List user repos (and forks? Do I want to know if A forks
@@ -35,13 +36,24 @@ def user(request, user):
     g = github.Github(access_token)
     u = g.get_user(user)
     repos = list(u.get_repos())
-    evs = [list(r.get_events()) for r in repos]
+
+    #XXX: remove the [:5]! there for debugging.
+    eventlists = [list(r.get_events()) for r in repos[:5]]
+
+    #TODO: cache some shit dude. Maybe create a custom github lib
+    #      with caching? TOO RADICAL MAYBE WHOA
 
     #the list of events we care about
     events = []
-    for eventlist in evs:
-        events.extend(e for e in evs if e.actor.login != user)
-    return render(request, 'user.html', {'user': user, 'events': events})
+    for el in eventlists:
+        events.extend(e for e in el if e.actor.login != user)
+
+    s = " ".join(str(e.payload) for e in events)
+
+    return render(request, 'user.html', {'user':   user,
+                                         'events': events,
+                                         's':      s,
+                                        })
 
 # http://hubvan.com/oauth_callback?code=736be3911d761bcb91f2
 def oauth_callback(request):
