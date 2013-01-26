@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect
 import requests
+import github
 
 from . import settings
 
@@ -49,5 +50,6 @@ def oauth_callback(request):
         #TODO: figure out logging
         return render(request, 'error.html', {'error': resbody["error"]})
 
-    #TODO: how the eff do I get a user's name here?
-    return redirect('/wtfistheusername?access_token=' + resbody["access_token"])
+    token = resbody['access_token']
+    username = github.Github(token).get_user().login
+    return redirect('/%s?access_token=%s' % (username, token))
