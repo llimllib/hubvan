@@ -1,6 +1,6 @@
 Django==1.4.3
 PyGithub==1.10.0
 github3.py==0.4
-ipython==0.13.1
+redis==2.7.2
 requests==1.0.4
 wsgiref==0.1.2
