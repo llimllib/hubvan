@@ -1,8 +1,16 @@
 from django.shortcuts import render, redirect
 import requests
 import github
+import redis
 
 from . import settings
+
+#hot or SUPER LAME?
+REDIS = redis.StrictRedis(
+            host = settings.REDIS_HOST,
+            port = settings.REDIS_PORT,
+            db   = settings.REDIS_DB
+        )
 
 def index(request):
     # View code here...
@@ -12,9 +20,10 @@ def user(request, user):
     # First, get an oauth token.
     # 1. Look in the cache, if it's there, try it
     # 2. If not, enter oauth flow (or some such)
+    access_token = REDIS.get("access_token-%s" % user)
 
-    # stick temp code here
-    access_token = '6be5763c4cfe61a5996cbf6ce1ee706d32489a34'
+    if not access_token:
+        print "no access token for %s" % user
 
     # View code here...
     # 1. List user repos (and forks? Do I want to know if A forks
@@ -23,7 +32,7 @@ def user(request, user):
     # 3. merge all those lists
     # 4. Display the last x
     import github
-    g = github.Github()
+    g = github.Github(access_token)
     u = g.get_user(user)
     repos = list(u.get_repos())
     evs = [list(r.get_events()) for r in repos]
@@ -52,4 +61,5 @@ def oauth_callback(request):
 
     token = resbody['access_token']
     username = github.Github(token).get_user().login
+    REDIS.set("access_token-%s" % username, token)
     return redirect('/%s?access_token=%s' % (username, token))
