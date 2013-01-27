@@ -1,7 +1,11 @@
-from django.shortcuts import render, redirect
+import time
+from collections import namedtuple
+
 import requests
 import github
 import redis
+
+from django.shortcuts import render, redirect
 
 from . import settings
 
@@ -15,6 +19,48 @@ REDIS = redis.StrictRedis(
 def index(request):
     # View code here...
     return render(request, 'index.html')
+
+class DisplayEvent(object):
+    def __init__(self, evt):
+        self.evt = evt
+        self.sortdate = evt.created_at
+
+    def displayable(self):
+        return len(str(self)) > 0
+
+    def __str__(self):
+        if   self.evt.type == 'WatchEvent':
+            return '<a href="%s">%s</a> %s watching <a href="%s">%s</a>' % (
+                    self.evt.actor.html_url,
+                    self.evt.actor.login,
+                    self.evt.payload['action'],
+                    self.evt.repo.html_url,
+                    self.evt.repo.name)
+
+        elif self.evt.type == 'ForkEvent':
+            return '<a href="%s">%s</a> forked <a href="%s">%s</a>' % (
+                    self.evt.actor.html_url,
+                    self.evt.actor.login,
+                    self.evt.repo.html_url,
+                    self.evt.repo.name)
+
+        elif self.evt.type == 'PullRequestEvent':
+            if not 'url' in self.evt.payload['pull_request']:
+                #some old github pull requests don't include a URL. They do
+                #have the pull request number, so follow that to a URL
+                pull_url = self.evt.repo.get_pull(self.evt.payload["pull_request"]["number"]).html_url
+            else:
+                pull_url = self.evt.payload['pull_request']['html_url']
+
+            return '<a href="%s">%s</a> created <a href="%s">pull request %s</a> on <a href="%s">%s</a>' % (
+                    self.evt.actor.html_url,
+                    self.evt.actor.login,
+                    pull_url,
+                    self.evt.payload['number'],
+                    self.evt.repo.html_url,
+                    self.evt.repo.name)
+        return ""
+
 
 def user(request, user):
     # First, get an oauth token.
@@ -45,14 +91,24 @@ def user(request, user):
 
     #the list of events we care about
     events = []
-    for el in eventlists:
-        events.extend(e for e in el if e.actor.login != user)
+    for eventlist in eventlists:
+        for event in eventlist:
+            #we don't want to see what we did.
+            if event.actor.login == user: continue
 
-    s = " ".join(str(e.payload) for e in events)
+            #if we don't know how to handle this event, just continue.
+            e = DisplayEvent(event)
+            if not e.displayable():
+                print "don't know how to handle event type %s" % event.type
+                continue
+
+            events.append(e)
+
+    events.sort(key=lambda x: x.sortdate)
+    events.reverse()
 
     return render(request, 'user.html', {'user':   user,
                                          'events': events,
-                                         's':      s,
                                         })
 
 # http://hubvan.com/oauth_callback?code=736be3911d761bcb91f2
