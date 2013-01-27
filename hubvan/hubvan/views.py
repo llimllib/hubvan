@@ -52,11 +52,41 @@ class DisplayEvent(object):
             else:
                 pull_url = self.evt.payload['pull_request']['html_url']
 
-            return '<a href="%s">%s</a> created <a href="%s">pull request %s</a> on <a href="%s">%s</a>' % (
+            return '<a href="%s">%s</a> %s <a href="%s">pull request %s</a> on <a href="%s">%s</a>' % (
                     self.evt.actor.html_url,
                     self.evt.actor.login,
+                    self.evt.payload['action'],
                     pull_url,
                     self.evt.payload['number'],
+                    self.evt.repo.html_url,
+                    self.evt.repo.name)
+        elif self.evt.type == 'IssuesEvent':
+            return '<a href="%s">%s</a> %s <a href="%s">issue %s</a> on <a href="%s">%s</a>' % (
+                    self.evt.actor.html_url,
+                    self.evt.actor.login,
+                    self.evt.payload['action'],
+                    self.evt.payload['issue']['html_url'],
+                    self.evt.payload['issue']['number'],
+                    self.evt.repo.html_url,
+                    self.evt.repo.name)
+        elif self.evt.type == 'IssueCommentEvent':
+            print self.evt.payload
+            if 'action' not in self.evt.payload:
+                #old IssueCommentEvents lack a whole bunch of crap. Here's the
+                #entire payload of one such:
+                # {u'repo': u'llimllib/bloomfilter-tutorial', u'comment_id': 1223476, u'issue_id': 939033, u'actor_gravatar': u'939848268c73b4049f90ee0703df7c68', u'actor': u'abachman'}
+                #
+                #For now, just toss it. Can't immediately see how to go from "issue_id"
+                #to an issue with the github API.
+                continue
+
+            #TODO probably want to use a bit of the comment or some shit
+            return '<a href="%s">%s</a> %s a comment on <a href="%s">issue %s</a> of <a href="%s">%s</a>' % (
+                    self.evt.actor.html_url,
+                    self.evt.actor.login,
+                    self.evt.payload['action'],
+                    self.evt.payload['issue']['html_url'],
+                    self.evt.payload['issue']['number'],
                     self.evt.repo.html_url,
                     self.evt.repo.name)
         return ""
@@ -83,8 +113,9 @@ def user(request, user):
     u = g.get_user(user)
     repos = list(u.get_repos())
 
-    #XXX: remove the [:5]! there for debugging.
-    eventlists = [list(r.get_events()) for r in repos[:5]]
+    #TODO: be much less wasteful in what events we grab! We'll murder our
+    #      API rate limit VERY QUICKLY with this.
+    eventlists = [list(r.get_events()) for r in repos]
 
     #TODO: cache some shit dude. Maybe create a custom github lib
     #      with caching? TOO RADICAL MAYBE WHOA
