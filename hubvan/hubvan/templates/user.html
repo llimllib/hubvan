@@ -1,2 +1,4 @@
-{{user}}
-{{events}}
+{{user}}<br>
+{% for event in events %}
+    {{ event|safe }}<br>
+{% endfor %}
