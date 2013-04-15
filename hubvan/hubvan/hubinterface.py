@@ -141,29 +141,7 @@ class ShittyGithub(object):
         url = "https://api.github.com/repos/{0}/events?page={1}".format(repo, page)
         return requests.get(url, headers=self.headers).json
 
-event_type_display_map = {
-    'WatchEvent': WatchEvent,
-    'ForkEvent': ForkEvent,
-    'PullRequestEvent': PullRequestEvent,
-    'IssuesEvent': IssuesEvent,
-    'IssueCommentEvent': IssueCommentEvent,
-}
-
-def make_display_events(raw_events):
-    events = []
-    for event in raw_events:
-        etype = event["type"]
-        if etype in event_type_display_map:
-            try:
-                events.append(event_type_display_map[etype](event))
-            except KeyError:
-                print "Failed to parse event of type {0}".format(etype)
-        else:
-            print "ignoring event of type {0}".format(etype)
-    return events
-
 class RepoEventIterator(object):
-    """Convert github events to display events and iterate through them"""
     def __init__(self, hub, repo):
         """repo: string, a repo name in "full name" format;
                  i.e. "username/reponame"
@@ -172,12 +150,12 @@ class RepoEventIterator(object):
         self.repo = repo
         self.hub = hub
         self.page = 1
-        self.events = make_display_events(self.hub.repo_events(self.repo))
+        self.events = self.hub.repo_events(self.repo)
 
     def next(self):
         if not self.events:
             self.page += 1
-            self.events = make_display_events(self.hub.repo_events(self.repo, self.page))
+            self.events = self.hub.repo_events(self.repo, self.page)
 
         if self.events:
             return self.events.pop(0)
@@ -186,11 +164,50 @@ class RepoEventIterator(object):
 
     def __iter__(self): return self
 
+class FilteredRepoEventIterator(object):
+    """Filter out events by a user and make DisplayEvents out of them"""
+    def __init__(self, hub, user, repo):
+        self.user = user
+        self.repo_events = RepoEventIterator(hub, repo)
+
+    def filtered_next(self):
+        n = self.repo_events.next()
+        while n['actor']['login'] == self.user:
+            n = self.repo_events.next()
+        return n
+
+    def next(self):
+        event = self.make_display_event(self.filtered_next())
+        while not event:
+            event = self.make_display_event(self.filtered_next())
+
+        return event
+
+    def make_display_event(self, raw_event):
+        """A static method, turns one event into a DisplayEvent"""
+        event_type_display_map = {
+            'WatchEvent': WatchEvent,
+            'ForkEvent': ForkEvent,
+            'PullRequestEvent': PullRequestEvent,
+            'IssuesEvent': IssuesEvent,
+            'IssueCommentEvent': IssueCommentEvent,
+        }
+
+        etype = raw_event["type"]
+        if etype in event_type_display_map:
+            try:
+                event = event_type_display_map[etype](raw_event)
+                return event
+            except KeyError:
+                print "Failed to parse event of type {0}".format(etype)
+        else:
+            print "ignoring event of type {0}".format(etype)
+
 class AllEventIterator(object):
-    def __init__(self, hub, repos):
+    def __init__(self, hub, user, repos):
         self.queue = []
         for repo in repos:
-            evtiter = RepoEventIterator(hub, repo)
+            evtiter = FilteredRepoEventIterator(hub, user, repo)
 
             try:
                 first = evtiter.next()
