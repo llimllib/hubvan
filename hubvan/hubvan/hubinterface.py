@@ -63,8 +63,8 @@ class IssuesEvent(DisplayEvent):
 
         try:
             self.action = event_json["payload"]["action"]
-            self.issue_url = event_json["issue"]["html_url"]
-            self.issue_num = event_json["issue"]["number"]
+            self.issue_url = event_json["payload"]["issue"]["html_url"]
+            self.issue_num = event_json["payload"]["issue"]["number"]
         except KeyError:
             print event_json
             raise
@@ -85,8 +85,8 @@ class IssueCommentEvent(DisplayEvent):
 
         try:
             self.action = event_json["payload"]["action"]
-            self.issue_url = event_json["issue"]["html_url"]
-            self.issue_num = event_json["issue"]["number"]
+            self.issue_url = event_json["payload"]["issue"]["html_url"]
+            self.issue_num = event_json["payload"]["issue"]["number"]
         except KeyError:
             print event_json
             raise
