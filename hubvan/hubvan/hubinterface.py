@@ -40,7 +40,7 @@ class PullRequestEvent(DisplayEvent):
 
         try:
             self.action = event_json["payload"]["action"]
-            self.pull_number = event_json["pull_request"]["number"]
+            self.pull_number = event_json["payload"]["pull_request"]["number"]
         except KeyError:
             print event_json
             raise
@@ -54,6 +54,50 @@ class PullRequestEvent(DisplayEvent):
                 self.action,
                 self.pull_url,
                 self.pull_number,
+                self.repo_url,
+                self.repo_name)
+
+class IssuesEvent(DisplayEvent):
+    def __init__(self, event_json):
+        DisplayEvent.__init__(self, event_json)
+
+        try:
+            self.action = event_json["payload"]["action"]
+            self.issue_url = event_json["issue"]["html_url"]
+            self.issue_num = event_json["issue"]["number"]
+        except KeyError:
+            print event_json
+            raise
+
+    def __str__(self):
+        return '<a href="{0}">{1}</a> {2} <a href="{3}">issue {4}</a> on <a href="{5}">{6}</a>'.format(
+                self.actor_url,
+                self.actor,
+                self.action,
+                self.issue_url,
+                self.issue_num,
+                self.repo_url,
+                self.repo_name)
+
+class IssueCommentEvent(DisplayEvent):
+    def __init__(self, event_json):
+        DisplayEvent.__init__(self, event_json)
+
+        try:
+            self.action = event_json["payload"]["action"]
+            self.issue_url = event_json["issue"]["html_url"]
+            self.issue_num = event_json["issue"]["number"]
+        except KeyError:
+            print event_json
+            raise
+
+    def __str__(self):
+        return '<a href="{0}">{1}</a> {2} a comment on <a href="{3}">issue {4}</a> of <a href="{5}">{6}</a>'.format(
+                self.actor_url,
+                self.actor,
+                self.action,
+                self.issue_url,
+                self.issue_num,
                 self.repo_url,
                 self.repo_name)
 
@@ -100,13 +144,22 @@ class ShittyGithub(object):
 event_type_display_map = {
     'WatchEvent': WatchEvent,
     'ForkEvent': ForkEvent,
+    'PullRequestEvent': PullRequestEvent,
+    'IssuesEvent': IssuesEvent,
+    'IssueCommentEvent': IssueCommentEvent,
 }
 
 def make_display_events(raw_events):
     events = []
     for event in raw_events:
-        if event["type"] in event_type_display_map:
-            events.append(event_type_display_map[event["type"]](event))
+        etype = event["type"]
+        if etype in event_type_display_map:
+            try:
+                events.append(event_type_display_map[etype](event))
+            except KeyError:
+                print "Failed to parse event of type {0}".format(etype)
+        else:
+            print "ignoring event of type {0}".format(etype)
     return events
 
 class RepoEventIterator(object):
