@@ -35,7 +35,7 @@ def user(request, user):
     hub = ShittyGithub(token=access_token)
     user = hub.get_user()
     repos = map(lambda x: x["full_name"], hub.get_repos())
-    events = list(islice(AllEventIterator(hub, repos), 20))
+    events = list(islice(AllEventIterator(hub, user, repos), 40))
 
     return render(request, 'user.html', {'user':   user,
                                          'events': events,
