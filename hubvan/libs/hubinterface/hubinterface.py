@@ -1,11 +1,7 @@
 # -*- coding: utf-8 -*-
-from datetime import datetime
-
 import requests
 
 from displayevents import *
-
-GITHUB_DATE_FORMAT = '%Y-%m-%dT%H:%M:%SZ'
 
 class ShittyGithub(object):
     """A shitty github wrapper"""
