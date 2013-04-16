@@ -5,11 +5,10 @@ from itertools import islice
 import requests
 import redis
 from pygithub3 import Github
-
 from django.shortcuts import render, redirect
 
-from . import settings
-from hubinterface import ShittyGithub, AllEventIterator
+from hubvan import settings
+from hubvan.libs.hubinterface import ShittyGithub, AllEventIterator
 
 #hot or SUPER LAME?
 REDIS = redis.StrictRedis(

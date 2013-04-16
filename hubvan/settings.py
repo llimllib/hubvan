@@ -1,7 +1,7 @@
 import os.path
 import sys
 
-PROJECT_DIR = os.path.normpath(os.path.join(os.path.dirname(__file__), '../..'))
+PROJECT_DIR = os.path.normpath(os.path.join(os.path.dirname(__file__), '..'))
 root_join = lambda d: os.path.join(PROJECT_DIR, d)
 
 DEBUG = True
@@ -153,7 +153,7 @@ LOGGING = {
 
 #first try to import *my* local settings
 try:
-    execfile(root_join("hubvan/hubvan/local_settings.py"))
+    execfile(root_join("hubvan/local_settings.py"))
 except IOError as e:
     print "unable to open local settings"
     print e
