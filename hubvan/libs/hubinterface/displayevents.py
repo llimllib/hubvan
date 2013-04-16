@@ -121,7 +121,7 @@ class CommitCommentEvent(DisplayEvent):
             print event_json
             raise
 
-        self.html_link = self.f('<a href="{html_url">commented on</a>')
+        self.html_link = self.f('<a href="{html_url}">commented on</a>')
 
     def __str__(self):
         return self.f('{actor_link} {html_link} {repo_link}: {message}')
