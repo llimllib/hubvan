@@ -119,6 +119,37 @@ class WatchEvent(DisplayEvent):
                 self.repo_url,
                 self.repo_name)
 
+class PushEvent(DisplayEvent):
+    def __init__(self, event_json):
+        DisplayEvent.__init__(self, event_json)
+
+        try:
+            #TODO: most payloads have a commits array, containing 1 or more commits
+            self.message = event_json["payload"]["commits"][0]['message'][:50]
+        except KeyError:
+            print event_json
+            raise
+
+    def __str__(self):
+        return '<a href="{0}">{1}</a> pushed to <a href="{2}">{3}</a>: {4}'.format(
+                self.actor_url,
+                self.actor,
+                self.repo_url,
+                self.repo_name,
+                self.message)
+
+class CommitCommentEvent(DisplayEvent):
+    def __init__(self, event_json):
+        DisplayEvent.__init__(self, event_json)
+
+    def __str__(self):
+        return '<a href="{0}">{1}</a> commented on commit <a href="{4}"> <a href="{2}">{3}</a>: {4}'.format(
+                self.actor_url,
+                self.actor,
+                self.repo_url,
+                self.repo_name,
+                self.message)
+
 class ShittyGithub(object):
     """A shitty github wrapper"""
 
@@ -185,12 +216,15 @@ class FilteredRepoEventIterator(object):
 
     def make_display_event(self, raw_event):
         """A static method, turns one event into a DisplayEvent"""
+        #TODO: this list should just get generated
         event_type_display_map = {
             'WatchEvent': WatchEvent,
             'ForkEvent': ForkEvent,
             'PullRequestEvent': PullRequestEvent,
             'IssuesEvent': IssuesEvent,
             'IssueCommentEvent': IssueCommentEvent,
+            'PushEvent': PushEvent,
+            'CommitCommentEvent': CommitCommentEvent,
         }
 
         etype = raw_event["type"]
@@ -202,9 +236,12 @@ class FilteredRepoEventIterator(object):
                 print "Failed to parse event of type {0}".format(etype)
         else:
             print "ignoring event of type {0}".format(etype)
+            if etype == "CommitCommentEvent":
+                print raw_event
 
 class AllEventIterator(object):
     def __init__(self, hub, user, repos):
+        #TODO: integrate a user's public events! Otherwise you don't know when somebody followed you
         self.queue = []
         for repo in repos:
             evtiter = FilteredRepoEventIterator(hub, user, repo)
