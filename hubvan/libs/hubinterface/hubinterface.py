@@ -127,12 +127,3 @@ class AllEventIterator(object):
         return item
 
     def __iter__(self): return self
-
-#import requests
-
-#token='6be5763c4cfe61a5996cbf6ce1ee706d32489a34'
-#hub = ShittyGithub(token)
-#
-#user = hub.get_user()
-#
-#print list(AllEventIterator(hub, ["llimllib/aiclass", "llimllib/bloomfilter-tutorial"]))
