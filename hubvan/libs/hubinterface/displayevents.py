@@ -11,12 +11,19 @@ class DisplayEvent(object):
         #required attributes. All items will have actor and actor_url
         try:
             self.actor = event_json["actor"]["login"]
-            self.actor_url = "https://github.com/{0}".format(self.actor)
             self.repo_name = event_json["repo"]["name"]
-            self.repo_url = "https://github.com/{0}".format(self.repo_name)
         except KeyError:
             print event_json
             raise
+
+        self.actor_url =  self.f('https://github.com/{actor}')
+        self.actor_link = self.f('<a href="{actor_url}">{actor}</a>')
+
+        self.repo_url =  self.f('https://github.com/{repo_name}')
+        self.repo_link = self.f('<a href="{repo_url}">{repo_name}</a>')
+
+    def f(self, template):
+        return template.format(**self.__dict__)
 
     def __repr__(self): return str(self)
 
@@ -25,11 +32,7 @@ class ForkEvent(DisplayEvent):
         DisplayEvent.__init__(self, event_json)
 
     def __str__(self):
-        return '<a href="{0}">{1}</a> forked <a href="{2}">{3}</a>'.format(
-                self.actor_url,
-                self.actor,
-                self.repo_url,
-                self.repo_name)
+        return self.f('{actor_link} forked {repo_link}')
 
 class PullRequestEvent(DisplayEvent):
     def __init__(self, event_json):
@@ -42,17 +45,11 @@ class PullRequestEvent(DisplayEvent):
             print event_json
             raise
 
-        self.pull_url = "https://github.com/{0}/pull/{1}".format(self.repo_name, self.pull_number)
+        self.pull_url = self.f('https://github.com/{repo_name}/pull/{pull_number}')
+        self.pull_link = self.f('<a href="{pull_url}">pull request {pull_number}</a>')
 
     def __str__(self):
-        return '<a href="{0}">{1}</a> {2} <a href="{3}">pull request {4}</a> on <a href="{5}">{6}</a>'.format(
-                self.actor_url,
-                self.actor,
-                self.action,
-                self.pull_url,
-                self.pull_number,
-                self.repo_url,
-                self.repo_name)
+        return self.f("{actor_link} {action} {pull_link} on {repo_link}")
 
 class IssuesEvent(DisplayEvent):
     def __init__(self, event_json):
@@ -66,15 +63,10 @@ class IssuesEvent(DisplayEvent):
             print event_json
             raise
 
+        self.issue_link = self.f('<a href="{issue_url}">issue {issue_num}</a>')
+
     def __str__(self):
-        return '<a href="{0}">{1}</a> {2} <a href="{3}">issue {4}</a> on <a href="{5}">{6}</a>'.format(
-                self.actor_url,
-                self.actor,
-                self.action,
-                self.issue_url,
-                self.issue_num,
-                self.repo_url,
-                self.repo_name)
+        return self.f('{actor_link} {action} {issue_link} on {repo_link}')
 
 class IssueCommentEvent(DisplayEvent):
     def __init__(self, event_json):
@@ -88,15 +80,10 @@ class IssueCommentEvent(DisplayEvent):
             print event_json
             raise
 
+        self.issue_link = self.f('<a href="{issue_url}">issue {issue_num}</a>')
+
     def __str__(self):
-        return '<a href="{0}">{1}</a> {2} a comment on <a href="{3}">issue {4}</a> of <a href="{5}">{6}</a>'.format(
-                self.actor_url,
-                self.actor,
-                self.action,
-                self.issue_url,
-                self.issue_num,
-                self.repo_url,
-                self.repo_name)
+        return self.f('{actor_link} {action} {issue_link} on {repo_link}')
 
 class WatchEvent(DisplayEvent):
     def __init__(self, event_json):
@@ -109,40 +96,32 @@ class WatchEvent(DisplayEvent):
             raise
 
     def __str__(self):
-        return '<a href="{0}">{1}</a> {2} watching <a href="{3}">{4}</a>'.format(
-                self.actor_url,
-                self.actor,
-                self.action,
-                self.repo_url,
-                self.repo_name)
+        return self.f('{actor_link} {action} watching {repo_link}')
 
 class PushEvent(DisplayEvent):
     def __init__(self, event_json):
         DisplayEvent.__init__(self, event_json)
 
         try:
-            #TODO: most payloads have a commits array, containing 1 or more commits
             self.message = event_json["payload"]["commits"][0]['message'][:50]
         except KeyError:
             print event_json
             raise
 
     def __str__(self):
-        return '<a href="{0}">{1}</a> pushed to <a href="{2}">{3}</a>: {4}'.format(
-                self.actor_url,
-                self.actor,
-                self.repo_url,
-                self.repo_name,
-                self.message)
+        return self.f('{actor_link} pushed to {repo_link}: {message}')
 
 class CommitCommentEvent(DisplayEvent):
     def __init__(self, event_json):
         DisplayEvent.__init__(self, event_json)
+        try:
+            self.message = event_json["payload"]["comment"]['body'][:50]
+            self.html_url = event_json["payload"]["comment"]['html_url']
+        except KeyError:
+            print event_json
+            raise
+
+        self.html_link = self.f('<a href="{html_url">commented on</a>')
 
     def __str__(self):
-        return '<a href="{0}">{1}</a> commented on commit <a href="{4}"> <a href="{2}">{3}</a>: {4}'.format(
-                self.actor_url,
-                self.actor,
-                self.repo_url,
-                self.repo_name,
-                self.message)
+        return self.f('{actor_link} {html_link} {repo_link}: {message}')
